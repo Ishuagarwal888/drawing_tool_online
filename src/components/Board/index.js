@@ -4,6 +4,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { MENU_ITEMS } from "@/constants";
 import { actionItemClick } from "@/slice/menuSlice";
 
+import { socket } from "@/socket";
+
 const Board = () => {
   const dispatch = useDispatch();
   const canvasRef = useRef(null);
@@ -56,6 +58,11 @@ const Board = () => {
       changeConfig(config.color, config.size);
     };
     changeConfig(color, size);
+    socket.on("changeConfig", handleChangeConfig);
+
+    return () => {
+      socket.off("changeConfig", handleChangeConfig);
+    };
   }, [color, size]);
 
   // before browser pain
@@ -82,6 +89,10 @@ const Board = () => {
         e.clientX || e.touches[0].clientX,
         e.clientY || e.touches[0].clientY
       );
+      socket.emit("beginPath", {
+        x: e.clientX || e.touches[0].clientX,
+        y: e.clientY || e.touches[0].clientY,
+      });
     };
 
     const handleMouseMove = (e) => {
@@ -90,6 +101,10 @@ const Board = () => {
         e.clientX || e.touches[0].clientX,
         e.clientY || e.touches[0].clientY
       );
+      socket.emit("drawLine", {
+        x: e.clientX || e.touches[0].clientX,
+        y: e.clientY || e.touches[0].clientY,
+      });
     };
 
     const handleMouseUp = (e) => {
@@ -115,6 +130,9 @@ const Board = () => {
     canvas.addEventListener("touchmove", handleMouseMove);
     canvas.addEventListener("touchend", handleMouseUp);
 
+    socket.on("beginPath", handleBeginPath);
+    socket.on("drawLine", handleDrawLine);
+
     return () => {
       canvas.removeEventListener("mousedown", handleMouseDown);
       canvas.removeEventListener("mousemove", handleMouseMove);
@@ -123,6 +141,9 @@ const Board = () => {
       canvas.removeEventListener("touchstart", handleMouseDown);
       canvas.removeEventListener("touchmove", handleMouseMove);
       canvas.removeEventListener("touchend", handleMouseUp);
+
+      socket.off("beginPath", handleBeginPath);
+      socket.off("drawLine", handleDrawLine);
     };
   }, []);
 
